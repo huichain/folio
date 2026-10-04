@@ -1,32 +1,51 @@
-# React + TypeScript + Vite
+# Folio
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Sepolia real-estate share demo. The frontend lists properties and a connected wallet’s holdings. An Express API stores contract snapshots and event logs in Postgres.
 
-Currently, two official plugins are available:
+- Estate contract: `0x54574F15f751Ef56B6cE556c6D20a5D39bc4013f`
+- Mock USDC: `0xDf5fA05Eb22B2B68a7178d325E3b8b6027F6C0D1`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Setup
 
-## React Compiler
+Create `.env` in the repo root:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Create `server/.env`:
+
+```
+DATABASE_URL=postgres://user:password@host:5432/dbname
+```
+
+Install dependencies:
+
+```bash
+npm install
+cd server && npm install
+```
+
+## Run
+
+Start the API (creates tables, syncs properties and events, listens on `127.0.0.1:4000`):
+
+```bash
+cd server && npm run dev
+```
+
+In another terminal, start the UI (`http://127.0.0.1:5173/`). `/api` is proxied to the server:
+
+```bash
+npm run dev
+```
+
+## Routes
+
+| Path | Source |
+| --- | --- |
+| `/` | Property list from `GET /api/properties` |
+| `/properties/:id` | One property from `GET /api/properties/:id` |
+| Connected wallet | Shares and claimable from `GET /api/portfolio/:address` |
+
+The mint button on the page claims 1000 mUSDC on Sepolia for testing.
