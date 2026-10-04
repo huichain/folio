@@ -27,6 +27,37 @@ export const abi = [
     },
     {
       type: "function",
+      name: "invest",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "propertyId", type: "uint256" },
+        { name: "shares", type: "uint256" },
+      ],
+      outputs: [],
+    },
+    {
+      type: "function",
+      name: "claimRevenue",
+      stateMutability: "nonpayable",
+      inputs: [{ name: "propertyId", type: "uint256" }],
+      outputs: [],
+    },
+    {
+      type: "function",
+      name: "refund",
+      stateMutability: "nonpayable",
+      inputs: [{ name: "propertyId", type: "uint256" }],
+      outputs: [],
+    },
+    {
+      type: "function",
+      name: "whitelisted",
+      stateMutability: "view",
+      inputs: [{ name: "account", type: "address" }],
+      outputs: [{ name: "", type: "bool" }],
+    },
+    {
+      type: "function",
       name: "balanceOf",
       stateMutability: "view",
       inputs: [
