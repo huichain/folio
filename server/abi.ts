@@ -32,4 +32,49 @@ export const abi = [
         },
       ],
     },
+    {
+      type: "event",
+      name: "Invested",
+      inputs: [
+        { name: "propertyId", type: "uint256", indexed: true },
+        { name: "investor", type: "address", indexed: true },
+        { name: "shares", type: "uint256", indexed: false },
+        { name: "amount", type: "uint256", indexed: false },
+      ],
+    },
+    {
+      type: "event",
+      name: "FundingFinalized",
+      inputs: [
+        { name: "propertyId", type: "uint256", indexed: true },
+        { name: "principalAmount", type: "uint256", indexed: false },
+      ],
+    },
+    {
+      type: "event",
+      name: "RevenueDeposited",
+      inputs: [
+        { name: "propertyId", type: "uint256", indexed: true },
+        { name: "depositor", type: "address", indexed: true },
+        { name: "amount", type: "uint256", indexed: false },
+      ],
+    },
+    {
+      type: "event",
+      name: "RevenueClaimed",
+      inputs: [
+        { name: "propertyId", type: "uint256", indexed: true },
+        { name: "investor", type: "address", indexed: true },
+        { name: "amount", type: "uint256", indexed: false },
+      ],
+    },
+    {
+      type: "event",
+      name: "Refunded",
+      inputs: [
+        { name: "propertyId", type: "uint256", indexed: true },
+        { name: "investor", type: "address", indexed: true },
+        { name: "amount", type: "uint256", indexed: false },
+      ],
+    },
   ] as const

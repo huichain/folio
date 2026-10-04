@@ -1,13 +1,12 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit"
+import { ConnectButton, useAddRecentTransaction } from "@rainbow-me/rainbowkit"
 import { useAccount, useReadContract, useWriteContract } from "wagmi"
 import { formatUnits } from "viem"
 import { sepolia } from "viem/chains"
-import { abi } from "./abi"
-import { estateAddress } from "./wagmi"
 import { usdcAbi, usdcAddress } from "./usdc"
 import { useQuery } from "@tanstack/react-query"
+import { Link, Route, Routes, useParams } from "react-router-dom"
 
-type Property = {
+export type Property = {
   id: string
   totalShares: string
   sharePrice: string
@@ -16,28 +15,89 @@ type Property = {
   state: string
 }
 
+type Portfolio = {
+  shares: string
+  claimable: string
+  positions: {
+    propertyId: string
+    shares: string
+    claimable: string
+  }[]
+}
+
+function PropertyDetail() {
+  const { id } = useParams()
+  const {address} =useAccount()
+  const portfolio=useQuery({
+    queryKey:["portfolio",address],
+    queryFn:async()=>{
+      const response=await fetch(`/api/portfolio/${address}`)
+      if(!response.ok) 
+        throw new Error("Failed to load portfolio")
+      return (await response.json()) as Portfolio
+    },
+    enabled:Boolean(address)
+  })
+  const position =portfolio.data?.positions.find((item)=>item.propertyId===id)
+
+  const property = useQuery(
+    {
+      queryKey: ["property", id],
+      queryFn: async () => {
+        const response = await fetch(`/api/properties/${id}`)
+        if (response.status === 404)
+          throw new Error("Property not found")
+        if (!response.ok)
+          throw new Error("Failed to load properties")
+        return (await response.json()) as Property
+      },
+      enabled: Boolean(id),
+    }
+  )
+
+  return (
+    <section>
+      <p><Link to="/">Back to list</Link></p>
+      {property.isLoading && <p>Loading properties...</p>}
+      {property.error && <p>Failed to load:{property.error.message}</p>}
+      {property.data && (
+        <>
+          <h1>Property #{property.data.id}</h1>
+          <p>Total shares:{property.data.totalShares}</p>
+          <p>Price per share:{property.data.sharePrice}</p>
+          <p>Shares sold:{property.data.soldShares}</p>
+          <p>Amount raised:{property.data.raisedAmount}</p>
+          <p>Status:{property.data.state}</p>
+          <p>My shares :{address? (position?.shares?? "0"):"Not connected"}</p>
+          <p>Claimable :{address? (position?.claimable??"0"):"Not connected"} mUSDC</p>
+        </>
+      )}
+    </section>
+  )
+
+}
+
 function App() {
-  // 当前连接的钱包地址。没连接时是 undefined。
+  // Connected wallet address. Undefined when no wallet is connected.
   const { address } = useAccount();
   const Properties = useQuery({
     queryKey: ["properties"],
     queryFn: async () => {
       const response = await fetch("/api/properties")
-      if (!response.ok) throw new Error("加载房产失败")
+      if (!response.ok) throw new Error("Failed to load properties")
       return (await response.json()) as Property[]
     }
   })
 
-
-  // 读 Sepolia 上房产 #1 的公开数据。view 调用，不需要签名，也不花 gas。
-  // propertyId 用 1n：合约参数是 uint256，wagmi 这里要传 bigint。
-  // const property = useReadContract({
-  //   address: estateAddress,
-  //   abi,
-  //   functionName: "getProperty",
-  //   args: [1n],
-  //   chainId: sepolia.id,
-  // })
+  const portfolio = useQuery({
+    queryKey: ["portfolio", address],
+    queryFn: async () => {
+      const response = await fetch(`/api/portfolio/${address}`)
+      if (!response.ok) throw new Error("Failed to load portfolio")
+      return (await response.json()) as Portfolio
+    },
+    enabled: Boolean(address),
+  })
 
   const { writeContract, isPending, error } = useWriteContract()
   const usdcBalance = useReadContract({
@@ -50,39 +110,43 @@ function App() {
   })
 
 
-  // 读当前钱包在房产 #1 上的 ERC-1155 份额。
-  // 没连接钱包时 address 为空，不能拿去当 account，所以用 enabled 关掉这次查询。
-  const shares = useReadContract({
-    address: estateAddress,
-    abi,
-    functionName: "balanceOf",
-    args: [address!, 1n],
-    chainId: sepolia.id,
-    query: { enabled: Boolean(address) },
-  })
-
   return (
     <main style={{ padding: 24, fontFamily: "sans-serif" }}>
-      {/* RainbowKit 的连接按钮：连上后会显示地址和断开入口。 */}
+      {/* RainbowKit connect button: shows the address and a disconnect option once connected. */}
       <header style={{ display: "flex", justifyContent: "flex-end" }}>
         <ConnectButton />
       </header>
-      {Properties.isLoading && <p>读取房产中...</p>}
-      {Properties.error && <p>读取失败：{Properties.error.message}</p>}
-      {Properties.data?.map((property) => (
-        <section key={property.id}>
-          <h1>房产 #{property.id}</h1>
-          <p>总份额：{property.totalShares}</p>
-          <p>每股价格：{property.sharePrice} mUSDC</p>
-          <p>已售份额：{property.soldShares}</p>
-          <p>已募集：{property.raisedAmount} mUSDC</p>
-          <p>状态：{property.state}</p>
-        </section>
-      ))}
+      <Routes>
+        <Route path="/" element={
+          <>
+            {Properties.isLoading && <p>Loading properties...</p>}
+            {Properties.error && <p>Failed to load: {Properties.error.message}</p>}
+            {Properties.data?.map((property) => (
+              <Link key={property.id} to={`/properties/${property.id}`}>
+                <h1>Property #{property.id}</h1>
+                <p>Total shares: {property.totalShares}</p>
+                <p>Price per share: {property.sharePrice} mUSDC</p>
+                <p>Shares sold: {property.soldShares}</p>
+                <p>Amount raised: {property.raisedAmount} mUSDC</p>
+                <p>Status: {property.state}</p>
+              </Link>
+            ))}
+          </>
+        } />
+        <Route path="/properties/:id" element={<PropertyDetail />} />
+      </Routes>
       <p>
-        我的份额:
-        {/* shares.data 是 bigint。undefined 表示查询还没跑（通常是还没连钱包）。 */}
-        {shares.data !== undefined ? shares.data.toString() : "未连接"}
+        My shares:{" "}
+        {!address && "Not connected"}
+        {address && portfolio.isLoading && "Loading..."}
+        {address && portfolio.error && portfolio.error.message}
+        {address && portfolio.data && portfolio.data.shares}
+      </p>
+      <p>
+        Claimable:{" "}
+        {!address&& "Not connected"}
+        {address && portfolio.isLoading && "Loading..."}
+        {address && portfolio.data && `${portfolio.data.claimable} mUSDC`}
       </p>
       <button type="button" disabled={!address || isPending} onClick={() =>
         writeContract(
@@ -96,13 +160,13 @@ function App() {
           { onSuccess: () => usdcBalance.refetch() },
         )
       }>
-        {isPending ? "等待钱包确认..." : "领取 1000 mUSDC"}
+        {isPending ? "Waiting for wallet confirmation..." : "Claim 1000 mUSDC"}
       </button>
-      {error && <p>交易失败:{error.message}</p>}
+      {error && <p>Transaction failed: {error.message}</p>}
       <p>
-        mUSDC 余额:
+        mUSDC balance:
         {usdcBalance.data !== undefined ?
-          formatUnits(usdcBalance.data, 6) : "未连接"}
+          formatUnits(usdcBalance.data, 6) : "Not connected"}
       </p>
     </main>
   )
