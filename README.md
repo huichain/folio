@@ -105,5 +105,3 @@ sequenceDiagram
   API->>DB: sum Invested minus Refunded
   API-->>UI: shares and claimable
 ```
-
-GitHub renders these diagrams in the README. For LinkedIn, open the repo file and screenshot one chart, or paste the mermaid into [mermaid.live](https://mermaid.live) and export a PNG.
